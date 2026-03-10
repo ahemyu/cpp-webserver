@@ -7,12 +7,12 @@ So for v1: one request per TCP connection, one fixed static root, regular files 
 
 
 High Level Execution Flow: 
-1. Server starts
+1. Server starts DONE
 - create a listening socket
 - bind it to an IP/port
 - mark it as listening
 - now the kernel queues incoming connection attempts for you
-2. Browser/client connects
+2. Browser/client connects DONE
 - client opens a TCP connection to your port
 - your server accepts one connection
 - after accept, you get a new connected socket just for that client
@@ -43,7 +43,8 @@ High Level Execution Flow:
 
 - understand on a high level what the actual workflow looks like (sockets, tcp, http headers etc) DONE
 - Accept TCP connections and read one HTTP request per connection.
-  - First open a listening socket, bind it to a port and keep listening.
+  - First open a listening socket, bind it to a port and accept connection from client DONE
+  - read one HTTP Request from that client socket NEXT
 - Parse just enough of HTTP/1.1 to handle valid `GET` requests.
 - Map request paths to files inside a chosen static root.
 - Return the file contents with a valid HTTP response, then close the connection.

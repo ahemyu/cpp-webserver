@@ -3,6 +3,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
+#include <unistd.h>
 
 typedef char unsigned u8;
 typedef short unsigned u16;
@@ -39,13 +40,45 @@ int main(){
       printf("Error binding Socket! \n");
       return 1;
     }
-    sockaddr clientAddr;
-    socklen_t clientAddrLen;
+    sockaddr clientAddr{};
+    socklen_t clientAddrLen {};
     //accept connections from clients on 127.0.0.1:8080
-    s32 acceptReturn = accept(socketCode, &clientAddr, &clientAddrLen);
-    if(acceptReturn == -1){
+    s32 clientSocket = accept(socketCode, &clientAddr, &clientAddrLen); //this returns the descriptor of the new client socket
+    if(clientSocket == -1){
       printf("Error binding Socket! \n");
       return 1;
+    }
+    
+    // allocate a buffer to store the incoming bytes
+    u8 buffer [4096] = {}; //a http get header should not be bigger than 4kb (I think)
+    u8* currentPos = buffer; // we will use this to track where in the buffer we are
+    s32 readBytes {};
+    u16 remainingBytes = sizeof(buffer);
+
+    while(true)
+    {
+        readBytes = read(clientSocket, currentPos, remainingBytes);
+      
+        if(readBytes == -1)
+        {
+          printf("Error reading Bytes from client socket! \n");
+          break;
+        }
+        if(readBytes == 0)
+        {
+          printf("We reached EOF !");
+          break;
+        }
+        remainingBytes -= readBytes;
+        currentPos += readBytes;
+        // the 4 bytes before currentPos are the ones we need to check if they equal to \r\n\r\n which is: 0D 0A 0D 0A
+        if((*(currentPos - 4) == 0x0D) && (*(currentPos - 3 ) == 0x0A) && (*(currentPos - 2) == 0x0D) && *(currentPos - 1) == 0x0A)
+        {
+            printf("end of HTTP Header! \n");
+            break;
+        }
+        u16 totalBytesRead = 4096 - remainingBytes;
+
     }
 
   return 0;
