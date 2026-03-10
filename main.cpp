@@ -2,7 +2,7 @@
 #include <cstdio>
 #include <sys/socket.h>
 #include <sys/types.h>
- #include <netinet/in.h>
+#include <netinet/in.h>
 
 typedef char unsigned u8;
 typedef short unsigned u16;
@@ -30,6 +30,20 @@ int main(){
 
     s32 bindReturn = bind(socketCode, reinterpret_cast<const sockaddr*>(&adr), len);
     if(bindReturn != 0){
+      printf("Error binding Socket! \n");
+      return 1;
+    }
+    
+    s32 listenReturn = listen(socketCode, 1 ); //socketCode is the socket file descriptor
+    if(listenReturn != 0){
+      printf("Error binding Socket! \n");
+      return 1;
+    }
+    sockaddr clientAddr;
+    socklen_t clientAddrLen;
+    //accept connections from clients on 127.0.0.1:8080
+    s32 acceptReturn = accept(socketCode, &clientAddr, &clientAddrLen);
+    if(acceptReturn == -1){
       printf("Error binding Socket! \n");
       return 1;
     }
