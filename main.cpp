@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#include <cstring>
 
 typedef char unsigned u8;
 typedef short unsigned u16;
@@ -15,13 +16,38 @@ typedef int s32;
 typedef long long s64;
 
 
+void parseHttpHeader(u8* buffer, u16 bytesRead)
+{
+  // we need to parse the header line by lin and determine if is a valid GET request
+  // each byte is one char of the header
+  if((std::memcmp(buffer, "GET ", 4) != 0)){
+    printf("Error, this is not a GET request. \n");
+    return;
+  }
+  //read out the path, which are the bytes until you reach next space
+  u8 path [1000] {}; //we only allow up to 1000 chars for the requested path
+  u8* pathOffset = path;
+  u8 bufferOffset = 4;
+  while(true)
+  { //0x20 is hex code of empty space
+    u8 currentByte = *(buffer + bufferOffset);
+    if(currentByte == 0x20){
+      break;
+    }
+    *pathOffset = currentByte;
+    pathOffset++;
+    bufferOffset++;
+  }
+
+  
+}
 int main(){
     int socketCode  = socket(AF_INET, SOCK_STREAM, 0);
     if(socketCode < 0){
       printf("Error opening Socket! \n");
       return 1;
     }
-    sockaddr_in adr{}; //TODO: set this so that it is some local ip
+    sockaddr_in adr{};
     adr.sin_family = AF_INET;
     adr.sin_port = 0x901F; //reverse notation for 8080 in hex bc x68 machines they store it Little Endian but we need network byte order (Big Endian)
     in_addr localhost;
@@ -74,12 +100,14 @@ int main(){
         // the 4 bytes before currentPos are the ones we need to check if they equal to \r\n\r\n which is: 0D 0A 0D 0A
         if((*(currentPos - 4) == 0x0D) && (*(currentPos - 3 ) == 0x0A) && (*(currentPos - 2) == 0x0D) && *(currentPos - 1) == 0x0A)
         {
-            printf("end of HTTP Header! \n");
             break;
         }
-        u16 totalBytesRead = 4096 - remainingBytes;
-
     }
+    u16 totalBytesRead = 4096 - remainingBytes;
+    parseHttpHeader(buffer, totalBytesRead);
 
+  //close the sockets
+  close(socketCode);
+  close(clientSocket);
   return 0;
 }

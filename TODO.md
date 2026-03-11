@@ -44,9 +44,9 @@ High Level Execution Flow:
 - understand on a high level what the actual workflow looks like (sockets, tcp, http headers etc) DONE
 - Accept TCP connections and read one HTTP request per connection.
   - First open a listening socket, bind it to a port and accept connection from client DONE
-  - read one HTTP Request from that client socket NEXT
-- Parse just enough of HTTP/1.1 to handle valid `GET` requests.
+  - read one HTTP Request from that client socket DONE
+- Parse just enough of HTTP/1.1 to handle valid `GET` requests. NEXT
+  - figure out what to do with the read bytes now NEXT
 - Map request paths to files inside a chosen static root.
 - Return the file contents with a valid HTTP response, then close the connection.
 - Handle a few basic error cases cleanly.
-- Test with a browser and simple command-line requests.
