@@ -15,8 +15,12 @@ typedef short s16;
 typedef int s32;
 typedef long long s64;
 
+struct path{
+  u8 length {};
+  u8* pathBegin {};
+};
 
-void parseHttpHeader(u8* buffer, u16 bytesRead)
+void parseHttpHeader(u8* buffer, u16 bytesRead, path* pathStr)
 {
   // we need to parse the header line by lin and determine if is a valid GET request
   // each byte is one char of the header
@@ -25,22 +29,30 @@ void parseHttpHeader(u8* buffer, u16 bytesRead)
     return;
   }
   //read out the path, which are the bytes until you reach next space
-  u8 path [1000] {}; //we only allow up to 1000 chars for the requested path
-  u8* pathOffset = path;
   u8 bufferOffset = 4;
+  pathStr->pathBegin = &buffer[bufferOffset];
+
   while(true)
   { //0x20 is hex code of empty space
     u8 currentByte = *(buffer + bufferOffset);
     if(currentByte == 0x20){
       break;
     }
-    *pathOffset = currentByte;
-    pathOffset++;
     bufferOffset++;
   }
+  pathStr->length = &buffer[bufferOffset] - pathStr->pathBegin;
 
-  
+  // TODO: validate that the last bytes end with "HTTP/1.1"
+  // bufferOffset++; //increase to first char of version
+  // u8* versionBegin = &buffer[bufferOffset];
+  // u8 versionBytes = 0;
+  // while(true)
+  // {
+  //   u8 currentByte = *(buffer + bufferOffset);
+  //   if(currentByte == )
+  // }
 }
+
 int main(){
     int socketCode  = socket(AF_INET, SOCK_STREAM, 0);
     if(socketCode < 0){
@@ -104,7 +116,11 @@ int main(){
         }
     }
     u16 totalBytesRead = 4096 - remainingBytes;
-    parseHttpHeader(buffer, totalBytesRead);
+    path p;
+    parseHttpHeader(buffer, totalBytesRead, &p);
+    
+    //TODO: call a function that returns the bytes of the resource that sits at the path
+    //TODO: call a function that returns a HttpResponse to the client
 
   //close the sockets
   close(socketCode);
