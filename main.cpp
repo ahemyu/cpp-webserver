@@ -42,15 +42,25 @@ void parseHttpHeader(u8* buffer, u16 bytesRead, path* pathStr)
   }
   pathStr->length = &buffer[bufferOffset] - pathStr->pathBegin;
 
-  // TODO: validate that the last bytes end with "HTTP/1.1"
-  // bufferOffset++; //increase to first char of version
-  // u8* versionBegin = &buffer[bufferOffset];
-  // u8 versionBytes = 0;
-  // while(true)
-  // {
-  //   u8 currentByte = *(buffer + bufferOffset);
-  //   if(currentByte == )
-  // }
+  //validate that the last bytes end with "HTTP/1.1"
+  bufferOffset++; //increase to first char of version
+  u8* versionBegin = &buffer[bufferOffset];
+  u8 versionBytes = 0;
+  while(true)
+  {
+    u8 currentByte = *(buffer + bufferOffset);
+    if(currentByte == 0x0D)
+    {
+      break;
+    }
+    bufferOffset++;
+    versionBytes++;
+  }
+  
+  if((std::memcmp(versionBegin, "HTTP/1.1", versionBytes) != 0)){
+    printf("Error, this is not a HTTP 1.1 Request. \n");
+    return;
+  }
 }
 
 int main(){
@@ -59,6 +69,8 @@ int main(){
       printf("Error opening Socket! \n");
       return 1;
     }
+    int reuseAddress = 1;
+    setsockopt(socketCode, SOL_SOCKET, SO_REUSEADDR, &reuseAddress, sizeof(reuseAddress));// allow resuing the same port and address immediately after closing
     sockaddr_in adr{};
     adr.sin_family = AF_INET;
     adr.sin_port = 0x901F; //reverse notation for 8080 in hex bc x68 machines they store it Little Endian but we need network byte order (Big Endian)
