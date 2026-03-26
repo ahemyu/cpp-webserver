@@ -1,10 +1,12 @@
 // g++ -std=c++20 -Wall -Wextra -Wpedantic -O2 main.cpp -o server && ./server
+#include <cstddef>
 #include <cstdio>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <unistd.h>
 #include <cstring>
+#include <fcntl.h>
 
 typedef char unsigned u8;
 typedef short unsigned u16;
@@ -61,6 +63,39 @@ void parseHttpHeader(u8* buffer, u16 bytesRead, path* pathStr)
     printf("Error, this is not a HTTP 1.1 Request. \n");
     return;
   }
+}
+
+void getResource(int dirfd, path* p)
+{
+  // look for the given path on disk and return the bytes if present
+  // build a 0 terminated string that can be passed to openat
+  // ignore the first "/" as including it would turn it into an absolute path
+  char pathStr [p->length];
+  char* pathPointer = pathStr;
+  u8 count = 0;
+  p->pathBegin++;// skip the leading slash
+  while(count < p->length - 1)
+  {
+    u8 currentChar = *p->pathBegin;
+    *pathPointer = currentChar;
+    pathPointer++;
+    p->pathBegin++;
+    count++;
+  }
+
+  *pathPointer = 0x00; //turn into null terminated string;
+  // look for the file with given name in the opened directory
+  int fd = openat(dirfd, pathStr, O_RDONLY);
+  if(fd == -1)
+  {
+    printf("ERROR: could not find requested file on disk!");
+    // TODO: set some state signaling that we will return a 404;
+  }
+  pathPointer++; //increment by one to ignore trailing slash 
+  // TODO: call the "read" function with the returned fd, a buffer to hold the bytes in and maximum amount of bytes to read from the bytes
+  // u8* buff {};
+  // size_t numberOfBytesToRead = 10000;
+  // size_t resourceBytes = read(fd, buff, numberOfBytesToRead);
 }
 
 int main(){
@@ -132,6 +167,15 @@ int main(){
     parseHttpHeader(buffer, totalBytesRead, &p);
     
     //TODO: call a function that returns the bytes of the resource that sits at the path
+    int dirfd = open(".", O_RDONLY | O_DIRECTORY);
+    if(dirfd == -1)
+    {
+      printf("ERROR: could not open directory for files ");
+      // TODO: set smth so that we return 404 as response
+    }else
+    {
+      getResource(dirfd, &p);
+    }
     //TODO: call a function that returns a HttpResponse to the client
 
   //close the sockets
