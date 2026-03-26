@@ -26,10 +26,10 @@ TODO:
 - blank line ends the header section
 - for V1, the main thing you care about is basically: “is this a valid GET /something HTTP/1.1 request?”
 5. Server maps path to disk NEXT
-- request path is not a file path yet
-- you translate it into a file under your chosen static root
-- you also reject unsafe paths that try to escape that root
-6. Server builds response
+- request path is not a file path yet DONE
+- you translate it into a file under your chosen static root DONE
+- you also reject unsafe paths that try to escape that root WON't DO
+6. Server builds response NEXT
 - if file exists and is allowed: send status line, headers, blank line, then file bytes
 - if not: send error response like 404 or 400
 7. Server closes connection

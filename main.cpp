@@ -1,8 +1,8 @@
 // g++ -std=c++20 -Wall -Wextra -Wpedantic -O2 main.cpp -o server && ./server
-#include <cstddef>
 #include <cstdio>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <netinet/in.h>
 #include <unistd.h>
 #include <cstring>
@@ -86,16 +86,52 @@ void getResource(int dirfd, path* p)
   *pathPointer = 0x00; //turn into null terminated string;
   // look for the file with given name in the opened directory
   int fd = openat(dirfd, pathStr, O_RDONLY);
+  close(dirfd); //we do not need the directory file descriptor anymore
   if(fd == -1)
   {
-    printf("ERROR: could not find requested file on disk!");
+    printf("ERROR: could not find requested file on disk!\n");
     // TODO: set some state signaling that we will return a 404;
+    return;
   }
-  pathPointer++; //increment by one to ignore trailing slash 
   // TODO: call the "read" function with the returned fd, a buffer to hold the bytes in and maximum amount of bytes to read from the bytes
-  // u8* buff {};
-  // size_t numberOfBytesToRead = 10000;
-  // size_t resourceBytes = read(fd, buff, numberOfBytesToRead);
+  // get the number of bytes the file contains from the SOL_SOCKET
+  struct stat s {};
+  int fileSizeReturn =  fstat(fd,  &s);
+  if (fileSizeReturn == -1)
+  {
+    printf("ERROR: could not get size of requested file\n");
+    // TODO: set some state signaling that we will return a 404;
+    return;
+  }
+  off_t numberOfBytesToRead = s.st_size;
+  u8 buff [numberOfBytesToRead];
+  ssize_t readBytes {};
+
+  // we need a pointer to curent bytes and a bytesremaining which we need to pass to read
+  u32 bytesRemaining = numberOfBytesToRead;
+  u8* currentByte = buff;
+
+  while(true)
+  {
+    readBytes = read(fd, currentByte, bytesRemaining);
+    if(readBytes == -1)
+    {
+      printf("ERROR: Could not read bytes of requested file. \n");
+      perror("read");
+      // TODO: we need to return 404
+      return;
+    }else if(readBytes == 0)
+    {
+      // we reached the end of the file and can stop
+      break;
+    }else
+    {
+      // we need to advance buffer by readBytes
+       currentByte += readBytes;
+      bytesRemaining -= readBytes;
+    }
+  }
+  close(fd);
 }
 
 int main(){
