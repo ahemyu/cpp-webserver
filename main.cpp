@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <cstring>
 #include <fcntl.h>
+#include <vector>
 
 typedef char unsigned u8;
 typedef short unsigned u16;
@@ -21,6 +22,11 @@ struct path{
   u8 length {};
   u8* pathBegin {};
 };
+
+struct requestedFile {
+  std::vector<u8> body {};
+  bool found {};
+}requestedFile;
 
 void parseHttpHeader(u8* buffer, u16 bytesRead, path* pathStr)
 {
@@ -86,11 +92,10 @@ void getResource(int dirfd, path* p)
   *pathPointer = 0x00; //turn into null terminated string;
   // look for the file with given name in the opened directory
   int fd = openat(dirfd, pathStr, O_RDONLY);
-  close(dirfd); //we do not need the directory file descriptor anymore
   if(fd == -1)
   {
     printf("ERROR: could not find requested file on disk!\n");
-    // TODO: set some state signaling that we will return a 404;
+    requestedFile.found = false;
     return;
   }
   // TODO: call the "read" function with the returned fd, a buffer to hold the bytes in and maximum amount of bytes to read from the bytes
@@ -100,16 +105,16 @@ void getResource(int dirfd, path* p)
   if (fileSizeReturn == -1)
   {
     printf("ERROR: could not get size of requested file\n");
-    // TODO: set some state signaling that we will return a 404;
+    requestedFile.found = false;
     return;
   }
   off_t numberOfBytesToRead = s.st_size;
-  u8 buff [numberOfBytesToRead];
+  requestedFile.body.resize(numberOfBytesToRead);
   ssize_t readBytes {};
 
   // we need a pointer to curent bytes and a bytesremaining which we need to pass to read
   u32 bytesRemaining = numberOfBytesToRead;
-  u8* currentByte = buff;
+  u8* currentByte = requestedFile.body.data();
 
   while(true)
   {
@@ -118,7 +123,7 @@ void getResource(int dirfd, path* p)
     {
       printf("ERROR: Could not read bytes of requested file. \n");
       perror("read");
-      // TODO: we need to return 404
+      requestedFile.found = false;
       return;
     }else if(readBytes == 0)
     {
@@ -132,6 +137,7 @@ void getResource(int dirfd, path* p)
     }
   }
   close(fd);
+  requestedFile.found = true;
 }
 
 int main(){
@@ -202,19 +208,20 @@ int main(){
     path p;
     parseHttpHeader(buffer, totalBytesRead, &p);
     
-    //TODO: call a function that returns the bytes of the resource that sits at the path
+    //call a function that returns the bytes of the resource that sits at the path
     int dirfd = open(".", O_RDONLY | O_DIRECTORY);
     if(dirfd == -1)
     {
       printf("ERROR: could not open directory for files ");
-      // TODO: set smth so that we return 404 as response
+        requestedFile.found = false;
     }else
     {
       getResource(dirfd, &p);
     }
     //TODO: call a function that returns a HttpResponse to the client
-
+ 
   //close the sockets
+  close(dirfd);
   close(socketCode);
   close(clientSocket);
   return 0;
