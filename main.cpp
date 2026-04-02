@@ -8,6 +8,7 @@
 #include <cstring>
 #include <fcntl.h>
 #include <vector>
+#include <string>
 
 typedef char unsigned u8;
 typedef short unsigned u16;
@@ -27,6 +28,14 @@ struct requestedFile {
   std::vector<u8> body {};
   bool found {};
 }requestedFile;
+
+struct Response{
+  u16 statusCode {};
+  u16 contentLength {};
+  std::string contentType {};
+
+}response;
+
 
 void parseHttpHeader(u8* buffer, u16 bytesRead, path* pathStr)
 {
@@ -98,7 +107,7 @@ void getResource(int dirfd, path* p)
     requestedFile.found = false;
     return;
   }
-  // TODO: call the "read" function with the returned fd, a buffer to hold the bytes in and maximum amount of bytes to read from the bytes
+  // call the "read" function with the returned fd, a buffer to hold the bytes in and maximum amount of bytes to read from the bytes
   // get the number of bytes the file contains from the SOL_SOCKET
   struct stat s {};
   int fileSizeReturn =  fstat(fd,  &s);
@@ -138,6 +147,43 @@ void getResource(int dirfd, path* p)
   }
   close(fd);
   requestedFile.found = true;
+}
+
+/* 
+ HTTP/1.1 200 OK\r\n
+  Content-Length: 14\r\n
+  Content-Type: text/plain\r\n
+  Connection: close\r\n
+  \r\n
+  Hello, world!\n
+
+ HTTP/1.1 404 Not Found\r\n
+  Content-Length: 0\r\n
+  Connection: close\r\n
+  \r\n
+*/
+// build the Response struct used to actually build the HTTP Response string
+void buildResponse()
+{
+  if(requestedFile.found)
+  {
+    // we want to return 200 ok
+    response.statusCode = 200;
+    response.contentLength = requestedFile.body.size();
+    response.contentType = '?'; // TODO: We need to figure out how to set this
+  }else
+  {
+    // we want to return 404 Not Found
+    response.statusCode = 404;
+    response.contentLength = 0;
+    // do we need to set a  contentType?
+  }
+}
+
+// stream the HTTP Resoonse to the client
+void streamHTTPResponse()
+{
+
 }
 
 int main(){
@@ -219,6 +265,8 @@ int main(){
       getResource(dirfd, &p);
     }
     //TODO: call a function that returns a HttpResponse to the client
+    buildResponse();
+    streamHTTPResponse();
  
   //close the sockets
   close(dirfd);
